@@ -4,13 +4,14 @@ CPP := g++
 TARGET := UnifiedHDFTest.exe
 OBJECTS := test.cpp
 
-CPPFLAGS := ""
+FLAGS := -std=c++11
+LIBRARIES := -lmfhdf -lhdf5
 
 %.o: %.cpp
-	$(CPP) $(CPPFLAGS) -o $@ $<
+	$(CPP) $(FLAGS) -o $@ $<
 
 default: $(OBJECTS)
-	$(CPP) -o $(TARGET) $(OBJECTS)
+	$(CPP) -o $(TARGET) $(OBJECTS) $(FLAGS) $(LIBRARIES)
 
 all: default
 
