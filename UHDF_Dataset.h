@@ -81,6 +81,7 @@ private:
                 dimensions.push_back(sdsDimSizes[i]);
             }
 
+            dataType = H4TypeToUHDF(sdsType);
 
             break;
         }
@@ -91,8 +92,8 @@ private:
                 throw UHDF_Exception("Couldn't open dataset name '" + datasetname + "'");
 
             {
-                const hid_t spaceId = H5Dget_space(id.h5id);
-                if (spaceId < 0)
+                const SpaceHolder spaceId(H5Dget_space(id.h5id));
+                if (spaceId.get() < 0)
                     throw UHDF_Exception("Error getting dataset info (couldn't get dataspace)");
 
                 const int rank = H5Sget_simple_extent_ndims(spaceId);
@@ -110,6 +111,11 @@ private:
                     for (int i = 0; i < rank; i++)
                         dimensions.push_back(dims[i]);
                 }
+            }
+
+            {
+                const TypeHolder h5Type(H5Dget_type(id.h5id));
+                dataType = H5TypeToUHDF(h5Type.get());
             }
 
             break;
