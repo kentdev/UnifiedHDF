@@ -2,6 +2,7 @@
 #define UHDF_TYPES_H
 
 #include <stdexcept>
+#include <stdint.h>
 #include <map>
 
 // HDF4
@@ -112,6 +113,77 @@ static inline hid_t UHDFTypeToH5( const UHDF_DataType &t)
         throw UHDF_Exception("Couldn't convert UHDF type to HDF4");
     return iter->second;
 }
+
+//--------------------------------
+
+template<typename T>
+static inline hid_t getH5Type()
+{
+    throw UHDF_Exception("Unknown type");
+    return -1;
+}
+
+template<>
+inline hid_t getH5Type<uint8_t>()
+{
+    return H5T_NATIVE_UINT8;
+}
+
+template<>
+inline hid_t getH5Type<int8_t>()
+{
+    return H5T_NATIVE_INT8;
+}
+
+template<>
+inline hid_t getH5Type<uint16_t>()
+{
+    return H5T_NATIVE_UINT16;
+}
+
+template<>
+inline hid_t getH5Type<int16_t>()
+{
+    return H5T_NATIVE_INT16;
+}
+
+template<>
+inline hid_t getH5Type<uint32_t>()
+{
+    return H5T_NATIVE_UINT32;
+}
+
+template<>
+inline hid_t getH5Type<int32_t>()
+{
+    return H5T_NATIVE_INT32;
+}
+
+template<>
+inline hid_t getH5Type<uint64_t>()
+{
+    return H5T_NATIVE_UINT64;
+}
+
+template<>
+inline hid_t getH5Type<int64_t>()
+{
+    return H5T_NATIVE_INT64;
+}
+
+template<>
+inline hid_t getH5Type<float>()
+{
+    return H5T_NATIVE_FLOAT;
+}
+
+template<>
+inline hid_t getH5Type<double>()
+{
+    return H5T_NATIVE_DOUBLE;
+}
+
+//--------------------------------
 
 static inline UHDF_DataType H5TypeToUHDF( const hid_t &t)
 {

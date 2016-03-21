@@ -2,18 +2,22 @@
 #define UHDF_H5HOLDER_H
 
 #include "hdf5.h"
+#include "UHDF_Types.h"
 
-class SpaceHolder
+class UHDF_SpaceHolder
 {
 private:
     hid_t id;
 
 public:
-    SpaceHolder(hid_t spaceId) :
+    UHDF_SpaceHolder(hid_t spaceId) :
         id (spaceId)
-    {}
+    {
+        if (spaceId < 0)
+            throw UHDF_Exception("Negative H5S ID received");
+    }
 
-    ~SpaceHolder()
+    ~UHDF_SpaceHolder()
     {
         if (id >= 0)
             H5Sclose(id);
@@ -25,17 +29,20 @@ public:
     }
 };
 
-class TypeHolder
+class UHDF_TypeHolder
 {
 private:
     hid_t id;
 
 public:
-    TypeHolder(hid_t typeId) :
+    UHDF_TypeHolder(hid_t typeId) :
         id (typeId)
-    {}
+    {
+        if (typeId < 0)
+            throw UHDF_Exception("Negative H5T ID received");
+    }
 
-    ~TypeHolder()
+    ~UHDF_TypeHolder()
     {
         if (id >= 0)
             H5Tclose(id);
