@@ -1,11 +1,14 @@
 CPP := g++
 
+ifneq ($(strip $(UHDF_DEBUG)),)
+DEBUG := -g
+endif
 
 TARGET := UnifiedHDFTest.exe
 OBJECTS := test.cpp
 
-FLAGS := -std=c++11
-LIBRARIES := -lmfhdf -lhdf5
+FLAGS := -std=c++11 $(DEBUG)
+LIBRARIES := -ldf -lmfhdf -lhdf5
 
 %.o: %.cpp
 	$(CPP) $(FLAGS) -o $@ $<

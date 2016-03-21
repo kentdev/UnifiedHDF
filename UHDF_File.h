@@ -13,7 +13,7 @@
 class UHDF_File
 {
 public:
-    UHDF_File( const std::string &fileName, UHDF_FileAccess accessMode)
+    UHDF_File( const std::string &fileName, UHDF_FileAccess accessMode = UHDF_READONLY)
     {
         filename = fileName;
 
@@ -83,6 +83,11 @@ public:
     const std::string &getFileName() const
     {
         return filename;
+    }
+
+    UHDF_FileType getFileType() const
+    {
+        return fileType;
     }
 
     std::list<std::string> getDatasetNames() const
@@ -201,6 +206,7 @@ public:
         // shouldn't reach here
         throw UHDF_Exception("Error opening dataset " + datasetName);
     }
+
 
 private:
     std::string filename;
