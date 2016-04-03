@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "UHDF_Dataset.h"
+#include "UHDF_Group.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -181,20 +182,30 @@ public:
         return groupNames;
     }
 
-    std::unique_ptr<UHDF_Dataset> openDataset(const std::string &datasetName) const
+    UHDF_Dataset openDataset(const std::string &datasetName) const
     {
         try
         {
             switch (fileType)
             {
             case UHDF_HDF4:
-                return std::unique_ptr<UHDF_Dataset>(new UHDF_Dataset(fileType, fileId, datasetName));
+                return UHDF_Dataset(fileType, fileId, datasetName);
             case UHDF_HDF5:
             {
                 UHDF_Identifier id;
                 id.h5id = H5RootGroupId;
 
-                return std::unique_ptr<UHDF_Dataset>(new UHDF_Dataset(fileType, id, datasetName));
+                // allow specifying a dataset in a subgroup (eg, "group1/group2/dataset")
+                const size_t delimiterPos = datasetName.find("/");
+                if (delimiterPos == std::string::npos)
+                {
+                    return UHDF_Dataset(fileType, id, datasetName);
+                }
+                else
+                {
+                    const std::string groupName = datasetName.substr(0, delimiterPos);
+                    return UHDF_Group(id, groupName).openDataset(datasetName.substr(delimiterPos+1, std::string::npos));
+                }
             }
             }
         }
@@ -205,6 +216,44 @@ public:
 
         // shouldn't reach here
         throw UHDF_Exception("Error opening dataset " + datasetName);
+    }
+
+    UHDF_Group openGroup(const std::string &groupName) const
+    {
+        try
+        {
+            switch (fileType)
+            {
+            case UHDF_HDF4:
+                throw UHDF_Exception("No groups in HDF4 files");
+            case UHDF_HDF5:
+            {
+                UHDF_Identifier id;
+                id.h5id = H5RootGroupId;
+
+                // allow specifying a dataset in a subgroup (eg, "group1/group2/dataset")
+                const size_t delimiterPos = groupName.find("/");
+                if (delimiterPos == std::string::npos)
+                {
+                    return UHDF_Group(id, groupName);
+                }
+                else
+                {
+                    const std::string groupName = groupName.substr(0, delimiterPos);
+                    return UHDF_Group(id, groupName).openGroup(groupName.substr(delimiterPos+1, std::string::npos));
+                }
+
+                return UHDF_Group(id, groupName);
+            }
+            }
+        }
+        catch (const UHDF_Exception &e)
+        {
+            throw UHDF_Exception("Couldn't open group " + groupName + " in file " + filename + ": " + e.what());
+        }
+
+        // shouldn't reach here
+        throw UHDF_Exception("Error opening group " + groupName);
     }
 
 

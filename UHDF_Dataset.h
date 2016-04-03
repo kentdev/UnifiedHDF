@@ -13,6 +13,7 @@
 class UHDF_Dataset
 {
     friend class UHDF_File;
+    friend class UHDF_Group;
 
 public:
     ~UHDF_Dataset()
@@ -40,9 +41,19 @@ public:
         return dimensions;
     }
 
-    const int getRank() const
+    const size_t getRank() const
     {
         return dimensions.size();
+    }
+
+    const size_t getNumElements() const
+    {
+        size_t elems = 1;
+        for (auto n : dimensions)
+        {
+            elems *= n;
+        }
+        return elems;
     }
 
     const UHDF_DataType getType() const
@@ -50,21 +61,16 @@ public:
         return dataType;
     }
 
-    template <typename T, size_t DIMS>
-    boost::multi_array<T, DIMS> read( const std::array<int32, DIMS> &start,
-                                      const std::array<int32, DIMS> &stride,
-                                      const std::array<int32, DIMS> &count)
+    void rawRead( const int32 *const start,
+                  const int32 *const stride,
+                  const int32 *const count,
+                  void *buffer) const
     {
-        if (dimensions.size() != DIMS)
-            throw UHDF_Exception("When reading, provided dimensions don't match dataset rank");
-
-        boost::multi_array<T, DIMS> output (boost::extents(count));
-
         switch(fileType)
         {
         case UHDF_HDF4:
         {
-            if (SDreaddata(id.h4id, start.get(), stride.get(), count.get(), output.data()) < 0)
+            if (SDreaddata(id.h4id, const_cast<int32*>(start), const_cast<int32*>(stride), const_cast<int32*>(count), buffer) < 0)
                 throw UHDF_Exception("Error reading HDF4 dataset '" + datasetname + "'");
             break;
         }
@@ -74,25 +80,141 @@ public:
 
             if (sizeof(hsize_t) == sizeof(int32))
             {
-                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, (hsize_t*)start.get(), (hsize_t*)stride.get(), (hsize_t*)count.get(), NULL);
+                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, (hsize_t*)start, (hsize_t*)stride, (hsize_t*)count, NULL);
             }
             else
             {
-                std::array<hsize_t, DIMS> hstart, hstride, hcount;
-                for (int i = 0; i < DIMS; i++)
+                std::unique_ptr<hsize_t[]> hstart(new hsize_t[rank]);
+                std::unique_ptr<hsize_t[]> hstride(new hsize_t[rank]);
+                std::unique_ptr<hsize_t[]> hcount(new hsize_t[rank]);
+                for (size_t i = 0; i < rank; i++)
                 {
                     hstart[i] = start[i];
                     hstride[i] = stride[i];
                     hcount[i] = count[i];
                 }
-                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, start.get(), stride.get(), count.get(), NULL);
+                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, hstart.get(), hstride.get(), hcount.get(), NULL);
             }
 
-            if (H5Dread(id.h5id, getH5Type<T>(), H5S_ALL, fileSpaceId.get(), H5P_DEFAULT, output.data()) < 0)
+            if (H5Dread(id.h5id, UHDFTypeToH5(dataType), H5S_ALL, fileSpaceId.get(), H5P_DEFAULT, buffer) < 0)
                 throw UHDF_Exception("Error reading HDF5 dataset '" + datasetname + "'");
             break;
         }
         }
+    }
+
+    void rawRead( const int32 *const start,
+                  const int32 *const count,
+                  void *buffer) const
+    {
+        std::unique_ptr<int32[]> stride(new int32[rank]);
+        for (size_t i = 0; i < rank; i++)
+            stride[i] = 1;
+
+        rawRead( start, stride.get(), count, buffer);
+    }
+
+    template<typename T>
+    void read( const int32 *const start,
+               const int32 *const stride,
+               const int32 *const count,
+               T* buffer) const
+    {
+        switch(fileType)
+        {
+        case UHDF_HDF4:
+        {
+            const UHDF_DataType outputType = getUHDFType<T>();
+            if (dataType == outputType)
+            {  // no conversion needed
+                rawRead(start, stride, count, buffer);
+            }
+            else
+            {  // need to convert from the field's type to the return type
+                switch(dataType)
+                {
+                case UINT8:
+                    convertH4<uint8, T>(start, stride, count, buffer);
+                    break;
+                case INT8:
+                    convertH4<int8, T>(start, stride, count, buffer);
+                    break;
+                case UINT16:
+                    convertH4<uint16, T>(start, stride, count, buffer);
+                    break;
+                case INT16:
+                    convertH4<int16, T>(start, stride, count, buffer);
+                    break;
+                case UINT32:
+                    convertH4<uint32, T>(start, stride, count, buffer);
+                    break;
+                case INT32:
+                    convertH4<int32, T>(start, stride, count, buffer);
+                    break;
+                case FLOAT32:
+                    convertH4<float, T>(start, stride, count, buffer);
+                    break;
+                case FLOAT64:
+                    convertH4<double, T>(start, stride, count, buffer);
+                    break;
+                default:
+                    throw UHDF_Exception("Unsupported datatype when doing conversion in read of dataset '" + datasetname + "'");
+                }
+            }
+            break;
+        }
+        case UHDF_HDF5:
+        {
+            const UHDF_SpaceHolder fileSpaceId(H5Scopy(H5Dget_space(id.h5id)));
+
+            if (sizeof(hsize_t) == sizeof(int32))
+            {
+                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, (hsize_t*)start, (hsize_t*)stride, (hsize_t*)count, NULL);
+            }
+            else
+            {
+                std::unique_ptr<hsize_t[]> hstart(new hsize_t[rank]);
+                std::unique_ptr<hsize_t[]> hstride(new hsize_t[rank]);
+                std::unique_ptr<hsize_t[]> hcount(new hsize_t[rank]);
+                for (size_t i = 0; i < rank; i++)
+                {
+                    hstart[i] = start[i];
+                    hstride[i] = stride[i];
+                    hcount[i] = count[i];
+                }
+                H5Sselect_hyperslab(fileSpaceId.get(), H5S_SELECT_SET, hstart.get(), hstride.get(), hcount.get(), NULL);
+            }
+
+            if (H5Dread(id.h5id, getH5Type<T>(), H5S_ALL, fileSpaceId.get(), H5P_DEFAULT, buffer) < 0)
+                throw UHDF_Exception("Error reading HDF5 dataset '" + datasetname + "'");
+            break;
+        }
+        }
+    }
+
+    template <typename T>
+    void read( const int32 *const start,
+               const int32 *const count,
+               T* buffer) const
+    {
+        std::unique_ptr<int32[]> stride(new int32[rank]);
+        for (size_t i = 0; i < rank; i++)
+            stride[i] = 1;
+
+        read (start, stride, count, buffer);
+    }
+
+    template <typename T, size_t DIMS>
+    boost::multi_array<T, DIMS> read( const std::array<int32, DIMS> &start,
+                                      const std::array<int32, DIMS> &stride,
+                                      const std::array<int32, DIMS> &count) const
+    {
+        if (dimensions.size() != DIMS)
+            throw UHDF_Exception("When reading, provided dimensions don't match dataset rank");
+
+        boost::multi_array<T, DIMS> output (boost::extents(count));
+
+        read( start.get(), stride.get(), count.get(), output.data());
 
         return output;
     }
@@ -107,12 +229,33 @@ public:
         return read(start, stride, count);
     }
 
+    template <typename T>
+    std::vector<T> readAll() const
+    {
+        std::vector<T> buffer;
+
+        buffer.resize(getNumElements(), 0);
+        std::unique_ptr<int32[]> start( new int32[rank]);
+        std::unique_ptr<int32[]> stride( new int32[rank]);
+        std::unique_ptr<int32[]> count( new int32[rank]);
+
+        for (size_t i = 0; i < rank; i++)
+        {
+            start[i] = 0;
+            stride[i] = 1;
+            count[i] = dimensions[i];
+        }
+
+        read (start.get(), stride.get(), count.get(), buffer.data());
+        return buffer;
+    }
+
 private:
     UHDF_FileType fileType;
     UHDF_Identifier id;
     UHDF_DataType dataType;
     std::string datasetname;
-
+    size_t rank;
     std::vector<size_t> dimensions;
 
     UHDF_Dataset( UHDF_FileType format, UHDF_Identifier ownerId, const std::string &datasetName)
@@ -148,6 +291,7 @@ private:
 
                 dimensions.push_back(sdsDimSizes[i]);
             }
+            rank = static_cast<size_t>(sdsRank);
 
             dataType = H4TypeToUHDF(sdsType);
 
@@ -163,7 +307,7 @@ private:
             if (spaceId.get() < 0)
                 throw UHDF_Exception("Error getting dataset info (couldn't get dataspace)");
 
-            const int rank = H5Sget_simple_extent_ndims(spaceId.get());
+            rank = H5Sget_simple_extent_ndims(spaceId.get());
             if (rank < 0)
                 throw UHDF_Exception("Error getting dataset info (couldn't get rank)");
 
@@ -185,6 +329,21 @@ private:
             break;
         }
         }
+    }
+
+    template<typename FILE_T, typename MEM_T>
+    void convertH4 (const int32 *const start,
+                    const int32 *const stride,
+                    const int32 *const count,
+                    MEM_T* buffer) const
+    {
+        const size_t elements = getNumElements();
+        std::unique_ptr<FILE_T[]> unconverted(new FILE_T[elements]);
+
+        rawRead(start, stride, count, unconverted.get());
+
+        for (size_t i = 0; i < elements; i++)
+            buffer[i] = static_cast<MEM_T>(unconverted[i]);
     }
 };
 
