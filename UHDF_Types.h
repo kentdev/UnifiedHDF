@@ -117,6 +117,143 @@ static inline hid_t UHDFTypeToH5( const UHDF_DataType &t)
 //--------------------------------
 
 template<typename T>
+static inline UHDF_DataType getUHDFType()
+{
+    throw UHDF_Exception("Unknown type");
+}
+
+template<>
+inline UHDF_DataType getUHDFType<uint8_t>()
+{
+    return UINT8;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<int8_t>()
+{
+    return INT8;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<uint16_t>()
+{
+    return UINT16;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<int16_t>()
+{
+    return INT16;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<uint32_t>()
+{
+    return UINT32;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<int32_t>()
+{
+    return INT32;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<uint64_t>()
+{
+    return UINT64;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<int64_t>()
+{
+    return INT64;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<float>()
+{
+    return FLOAT32;
+}
+
+template<>
+inline UHDF_DataType getUHDFType<double>()
+{
+    return FLOAT64;
+}
+
+//--------------------------------
+
+template<typename T>
+static inline int getH4Type()
+{
+    throw UHDF_Exception("Unknown type");
+    return -1;
+}
+
+template<>
+inline int getH4Type<uint8_t>()
+{
+    return DFNT_UINT8;
+}
+
+template<>
+inline int getH4Type<int8_t>()
+{
+    return DFNT_INT8;
+}
+
+template<>
+inline int getH4Type<uint16_t>()
+{
+    return DFNT_UINT16;
+}
+
+template<>
+inline int getH4Type<int16_t>()
+{
+    return DFNT_INT16;
+}
+
+template<>
+inline int getH4Type<uint32_t>()
+{
+    return DFNT_UINT32;
+}
+
+template<>
+inline int getH4Type<int32_t>()
+{
+    return DFNT_INT32;
+}
+
+template<>
+inline int getH4Type<uint64_t>()
+{
+    return DFNT_UINT64;
+}
+
+template<>
+inline int getH4Type<int64_t>()
+{
+    return DFNT_INT64;
+}
+
+template<>
+inline int getH4Type<float>()
+{
+    return DFNT_FLOAT32;
+}
+
+template<>
+inline int getH4Type<double>()
+{
+    return DFNT_FLOAT64;
+}
+
+//--------------------------------
+
+template<typename T>
 static inline hid_t getH5Type()
 {
     throw UHDF_Exception("Unknown type");
