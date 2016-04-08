@@ -2,6 +2,11 @@
 #include <iostream>
 using namespace std;
 
+void listAttributes(const UHDF_Group &g, int depth)
+{
+    for (auto &name : g.)
+}
+
 void listGroup(const UHDF_Group &g, int depth)
 {
     for (const auto &name : g.getGroupNames())
@@ -11,6 +16,7 @@ void listGroup(const UHDF_Group &g, int depth)
 
         cout << "\tGROUP '" << name << "'" << endl;
         const UHDF_Group g = g.openGroup(name);
+        listAttributes(g, depth + 1);
         listGroup (g, depth + 1);
     }
     for (const auto &name : g.getDatasetNames())

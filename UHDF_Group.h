@@ -2,12 +2,15 @@
 #define UHDF_GROUP_H
 
 #include "UHDF_Types.h"
+#include "UHDF_Interfaces.h"
+#include "UHDF_Dataset.h"
+
 #include <list>
 #include <string>
 
 
 // groups don't exist in HDF4, so all UHDF_Groups are HDF5
-class UHDF_Group
+class UHDF_Group// : UHDF_DatasetHolder, UHDF_AttributeHolder
 {
     friend class UHDF_File;
 
@@ -31,6 +34,34 @@ public:
     std::list<std::string> getDatasetNames() const
     {
         return getObjNames(H5G_DATASET);
+    }
+
+    std::list<std::string> getAttributeNames() const
+    {
+        std::list<std::string> names;
+
+        const int numAttrs = H5Aget_num_attrs(id.h5id);
+        if (numAttrs < 0)
+            throw UHDF_Exception("Error retrieving the number of attributes in group '" + groupname + "'");
+
+        for (int i = 0; i < numAttrs; i++)
+        {
+            const ssize_t nameLength = H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, NULL, 0, H5P_DEFAULT);
+            if (nameLength < 0)
+                throw UHDF_Exception("Error getting name of attribute " + boost::lexical_cast<std::string>(i) + " of group '" + groupname + "'");
+            if (nameLength == 0)
+                continue;
+
+            std::unique_ptr<char[]> name(new char[nameLength + 1]);
+            memset(name.get(), 0, nameLength);
+
+            if (H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name.get(), nameLength, H5P_DEFAULT) < 0)
+                throw UHDF_Exception("Error getting name of attribute " + boost::lexical_cast<std::string>(i) + " of group '" + groupname + "'");
+
+            names.push_back(std::string(name.get()));
+        }
+
+        return names;
     }
 
     UHDF_Group openGroup(const std::string &groupName) const

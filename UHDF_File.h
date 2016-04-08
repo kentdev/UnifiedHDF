@@ -11,7 +11,7 @@
 #include <boost/lexical_cast.hpp>
 
 
-class UHDF_File
+class UHDF_File// : GroupHolder, DatasetHolder, AttributeHolder
 {
 public:
     UHDF_File( const std::string &fileName, UHDF_FileAccess accessMode = UHDF_READONLY)

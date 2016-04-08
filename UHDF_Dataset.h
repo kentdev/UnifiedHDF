@@ -9,8 +9,9 @@
 
 #include "UHDF_Types.h"
 #include "UHDF_H5Holder.h"
+#include "UHDF_Interfaces.h"
 
-class UHDF_Dataset
+class UHDF_Dataset// : public UHDF_AttributeHolder
 {
     friend class UHDF_File;
     friend class UHDF_Group;
@@ -250,6 +251,8 @@ public:
         return buffer;
     }
 
+
+
 private:
     UHDF_FileType fileType;
     UHDF_Identifier id;
@@ -337,12 +340,20 @@ private:
                     const int32 *const count,
                     MEM_T* buffer) const
     {
-        const size_t elements = getNumElements();
-        std::unique_ptr<FILE_T[]> unconverted(new FILE_T[elements]);
+        size_t numSelectedElements = 1;
+        for (size_t i = 0; i < rank; i++)
+        {
+            if (count[i] <= 0)
+                throw UHDF_Exception("Zero or negative count given when reading");
+
+            numSelectedElements *= count[i];
+        }
+
+        std::unique_ptr<FILE_T[]> unconverted(new FILE_T[numSelectedElements]);
 
         rawRead(start, stride, count, unconverted.get());
 
-        for (size_t i = 0; i < elements; i++)
+        for (size_t i = 0; i < numSelectedElements; i++)
             buffer[i] = static_cast<MEM_T>(unconverted[i]);
     }
 };
