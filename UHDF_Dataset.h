@@ -134,28 +134,28 @@ public:
             {  // need to convert from the field's type to the return type
                 switch(dataType)
                 {
-                case UINT8:
+                case UHDF_UINT8:
                     convertH4<uint8, T>(start, stride, count, buffer);
                     break;
-                case INT8:
+                case UHDF_INT8:
                     convertH4<int8, T>(start, stride, count, buffer);
                     break;
-                case UINT16:
+                case UHDF_UINT16:
                     convertH4<uint16, T>(start, stride, count, buffer);
                     break;
-                case INT16:
+                case UHDF_INT16:
                     convertH4<int16, T>(start, stride, count, buffer);
                     break;
-                case UINT32:
+                case UHDF_UINT32:
                     convertH4<uint32, T>(start, stride, count, buffer);
                     break;
-                case INT32:
+                case UHDF_INT32:
                     convertH4<int32, T>(start, stride, count, buffer);
                     break;
-                case FLOAT32:
+                case UHDF_FLOAT32:
                     convertH4<float, T>(start, stride, count, buffer);
                     break;
-                case FLOAT64:
+                case UHDF_FLOAT64:
                     convertH4<double, T>(start, stride, count, buffer);
                     break;
                 default:
@@ -251,15 +251,70 @@ public:
         return buffer;
     }
 
+    std::list<std::string> getAttributeNames() const
+    {
+        std::list<std::string> names;
 
+        switch(fileType)
+        {
+        case UHDF_HDF4:
+        {
+            for (int32 i = 0; i < h4NumAttrs; i++)
+            {
+                char name[MAX_NC_NAME + 1];
+                int32 attType;
+                int32 attCount;
+
+                memset(name, 0, MAX_NC_NAME + 1);
+                if (SDattrinfo(id.h4id, i, name, &attType, &attCount) < 0)
+                    throw UHDF_Exception("Error getting attribute name from dataset '" + datasetname + "'");
+
+                names.push_back(std::string(name));
+            }
+            break;
+        }
+        case UHDF_HDF5:
+        {
+            const int numAttrs = H5Aget_num_attrs(id.h5id);
+            if (numAttrs < 0)
+                throw UHDF_Exception("Error retrieving the number of attributes in dataset '" + datasetname + "'");
+
+            for (int i = 0; i < numAttrs; i++)
+            {
+                const ssize_t nameLength = H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, NULL, 0, H5P_DEFAULT);
+                if (nameLength < 0)
+                    throw UHDF_Exception("Error getting name of attribute " + boost::lexical_cast<std::string>(i) + " of dataset '" + datasetname + "'");
+                if (nameLength == 0)
+                    continue;
+
+                std::unique_ptr<char[]> name(new char[nameLength + 1]);
+                memset(name.get(), 0, nameLength + 1);
+
+                if (H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name.get(), nameLength + 1, H5P_DEFAULT) < 0)
+                    throw UHDF_Exception("Error getting name of attribute " + boost::lexical_cast<std::string>(i) + " of dataset '" + datasetname + "'");
+
+                names.push_back(std::string(name.get()));
+            }
+            break;
+        }
+        }
+
+        return names;
+    }
+
+    UHDF_Attribute openAttribute(const std::string &attributeName) const
+    {
+        return UHDF_Attribute(fileType, id, attributeName);
+    }
 
 private:
     UHDF_FileType fileType;
     UHDF_Identifier id;
     UHDF_DataType dataType;
     std::string datasetname;
-    size_t rank;
+    int rank;
     std::vector<size_t> dimensions;
+    int32 h4NumAttrs;
 
     UHDF_Dataset( UHDF_FileType format, UHDF_Identifier ownerId, const std::string &datasetName)
     {
@@ -281,9 +336,8 @@ private:
             int32 sdsRank;
             int32 sdsDimSizes[MAX_VAR_DIMS];
             int32 sdsType;
-            int32 sdsNumAttrs;
 
-            if (SDgetinfo( id.h4id, NULL, &sdsRank, sdsDimSizes, &sdsType, &sdsNumAttrs) < 0)
+            if (SDgetinfo( id.h4id, NULL, &sdsRank, sdsDimSizes, &sdsType, &h4NumAttrs) < 0)
                 throw UHDF_Exception("Error getting dataset info");
 
             for (intn i = 0; i < sdsRank; i++)

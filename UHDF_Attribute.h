@@ -29,6 +29,11 @@ public:
         }
     }
 
+    const std::string &getName() const
+    {
+        return attributename;
+    }
+
     size_t getNumElements() const
     {
         return numElements;
@@ -42,8 +47,8 @@ public:
     std::string readAsString() const
     {
         std::vector<char> data = read<char>();
-        data.push(0);
-        return std::string(data.get());
+        data.push_back(0);
+        return std::string(data.data());
     }
 
     bool isString() const
@@ -51,7 +56,7 @@ public:
         if (datatype != UHDF_INT8)
             return false;
 
-        switch(filetype)
+        switch(fileType)
         {
         case UHDF_HDF4:
             return true;  // assume all 8-bit signed-type attributes are character arrays
@@ -87,28 +92,28 @@ public:
             {  // need to convert from the field's type to the return type
                 switch(datatype)
                 {
-                case UINT8:
+                case UHDF_UINT8:
                     convertH4<uint8, T>(buffer);
                     break;
-                case INT8:
+                case UHDF_INT8:
                     convertH4<int8, T>(buffer);
                     break;
-                case UINT16:
+                case UHDF_UINT16:
                     convertH4<uint16, T>(buffer);
                     break;
-                case INT16:
+                case UHDF_INT16:
                     convertH4<int16, T>(buffer);
                     break;
-                case UINT32:
+                case UHDF_UINT32:
                     convertH4<uint32, T>(buffer);
                     break;
-                case INT32:
+                case UHDF_INT32:
                     convertH4<int32, T>(buffer);
                     break;
-                case FLOAT32:
+                case UHDF_FLOAT32:
                     convertH4<float, T>(buffer);
                     break;
-                case FLOAT64:
+                case UHDF_FLOAT64:
                     convertH4<double, T>(buffer);
                     break;
                 default:
@@ -135,7 +140,7 @@ private:
     UHDF_Identifier id;
     std::string attributename;
     UHDF_DataType datatype;
-    size_t numElements;
+    int numElements;
 
     UHDF_Attribute (UHDF_FileType type, UHDF_Identifier ownerId, const std::string &attributeName)
     {
@@ -172,7 +177,11 @@ private:
             const UHDF_SpaceHolder space(H5Aget_space(id.h5id));
             const UHDF_TypeHolder type(H5Aget_type(id.h5id));
 
-            datatype =
+            datatype = H5TypeToUHDF(type.get());
+            numElements = H5Sget_simple_extent_npoints(space.get());
+
+            if (numElements < 0)
+                throw UHDF_Exception("Error getting number of elements in attribute '" + attributename + "'");
 
             break;
         }

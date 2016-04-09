@@ -2,9 +2,23 @@
 #include <iostream>
 using namespace std;
 
-void listAttributes(const UHDF_Group &g, int depth)
+template <typename T>
+void listAttributes(const T &attOwner, int depth)
 {
-    for (auto &name : g.)
+    for (const auto &name : attOwner.getAttributeNames())
+    {
+        cout << name << ": ";
+
+        const UHDF_Attribute att = attOwner.openAttribute(name);
+        if (att.isString())
+        {
+            cout << "string, '" << att.readAsString() << "'" << endl;
+        }
+        else
+        {
+            cout << UHDFTypeName(att.getType()) << ", " << att.getNumElements() << " elements" << endl;
+        }
+    }
 }
 
 void listGroup(const UHDF_Group &g, int depth)
@@ -24,6 +38,8 @@ void listGroup(const UHDF_Group &g, int depth)
         for (int i = 0; i < depth; i++)
             cout << "\t";
         cout << "\tFIELD '" << name << "'" << endl;
+        const UHDF_Dataset d = g.openDataset(name);
+        listAttributes(d, depth + 1);
     }
 }
 
@@ -42,9 +58,10 @@ void listContents(const UHDF_File &f)
     }
 }
 
-void average(const UHDF_File &f, const string &field)
+template <typename T>
+void average(const T &dsOwner, const string &field)
 {
-    const UHDF_Dataset d = f.openDataset(field);
+    const UHDF_Dataset d = dsOwner.openDataset(field);
 
     const auto &dims = d.getDimensions();
 

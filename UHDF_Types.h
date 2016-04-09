@@ -37,57 +37,78 @@ typedef union
 
 typedef enum
 {
-    UINT8,
-    INT8,
-    UINT16,
-    INT16,
-    UINT32,
-    INT32,
-    UINT64,
-    INT64,
-    FLOAT32,
-    FLOAT64
+    UHDF_UINT8,
+    UHDF_INT8,
+    UHDF_UINT16,
+    UHDF_INT16,
+    UHDF_UINT32,
+    UHDF_INT32,
+    UHDF_UINT64,
+    UHDF_INT64,
+    UHDF_FLOAT32,
+    UHDF_FLOAT64
 } UHDF_DataType;
 
+static const std::map<UHDF_DataType, std::string> UHDFNameMap = {
+    {UHDF_UINT8,    "UINT8"},
+    {UHDF_INT8,     "INT8"},
+    {UHDF_UINT16,   "UINT16"},
+    {UHDF_INT16,    "INT16"},
+    {UHDF_UINT32,   "UINT32"},
+    {UHDF_INT32,    "INT32"},
+    {UHDF_UINT64,   "UINT64"},
+    {UHDF_INT64,    "INT64"},
+    {UHDF_FLOAT32,  "FLOAT32"},
+    {UHDF_FLOAT64,  "FLOAT64"}
+};
+
+static inline const std::string& UHDFTypeName( const UHDF_DataType &t)
+{
+    const auto &iter = UHDFNameMap.find(t);
+    if (iter == UHDFNameMap.end())
+        throw UHDF_Exception("Couldn't get UHDF type name");
+    return iter->second;
+}
+
 static const std::map<UHDF_DataType, int> UHDFToHDF4Map = {
-    {UINT8,    DFNT_UINT8},
-    {INT8,     DFNT_INT8},
-    {UINT16,   DFNT_UINT16},
-    {INT16,    DFNT_INT16},
-    {UINT32,   DFNT_UINT32},
-    {INT32,    DFNT_INT32},
-    {UINT64,   DFNT_UINT64},
-    {INT64,    DFNT_INT64},
-    {FLOAT32,  DFNT_FLOAT32},
-    {FLOAT64,  DFNT_FLOAT64}
+    {UHDF_UINT8,    DFNT_UINT8},
+    {UHDF_INT8,     DFNT_INT8},
+    {UHDF_UINT16,   DFNT_UINT16},
+    {UHDF_INT16,    DFNT_INT16},
+    {UHDF_UINT32,   DFNT_UINT32},
+    {UHDF_INT32,    DFNT_INT32},
+    {UHDF_UINT64,   DFNT_UINT64},
+    {UHDF_INT64,    DFNT_INT64},
+    {UHDF_FLOAT32,  DFNT_FLOAT32},
+    {UHDF_FLOAT64,  DFNT_FLOAT64}
 };
 
 static const std::map<int, UHDF_DataType> HDF4ToUHDFMap = {
-    {DFNT_CHAR,    INT8},
-    {DFNT_UCHAR,   UINT8},
-    {DFNT_UINT8,   UINT8},
-    {DFNT_INT8,    INT8},
-    {DFNT_UINT16,  UINT16},
-    {DFNT_INT16,   INT16},
-    {DFNT_UINT32,  UINT32},
-    {DFNT_INT32,   INT32},
-    {DFNT_UINT64,  UINT64},
-    {DFNT_INT64,   INT64},
-    {DFNT_FLOAT32, FLOAT32},
-    {DFNT_FLOAT64, FLOAT64}
+    {DFNT_CHAR,    UHDF_INT8},
+    {DFNT_UCHAR,   UHDF_UINT8},
+    {DFNT_UINT8,   UHDF_UINT8},
+    {DFNT_INT8,    UHDF_INT8},
+    {DFNT_UINT16,  UHDF_UINT16},
+    {DFNT_INT16,   UHDF_INT16},
+    {DFNT_UINT32,  UHDF_UINT32},
+    {DFNT_INT32,   UHDF_INT32},
+    {DFNT_UINT64,  UHDF_UINT64},
+    {DFNT_INT64,   UHDF_INT64},
+    {DFNT_FLOAT32, UHDF_FLOAT32},
+    {DFNT_FLOAT64, UHDF_FLOAT64}
 };
 
 static const std::map<UHDF_DataType, hid_t> UHDFToHDF5Map = {
-    {UINT8,    H5T_NATIVE_UINT8},
-    {INT8,     H5T_NATIVE_INT8},
-    {UINT16,   H5T_NATIVE_UINT16},
-    {INT16,    H5T_NATIVE_INT16},
-    {UINT32,   H5T_NATIVE_UINT32},
-    {INT32,    H5T_NATIVE_INT32},
-    {UINT64,   H5T_NATIVE_UINT64},
-    {INT64,    H5T_NATIVE_INT64},
-    {FLOAT32,  H5T_NATIVE_FLOAT},
-    {FLOAT64,  H5T_NATIVE_DOUBLE}
+    {UHDF_UINT8,    H5T_NATIVE_UINT8},
+    {UHDF_INT8,     H5T_NATIVE_INT8},
+    {UHDF_UINT16,   H5T_NATIVE_UINT16},
+    {UHDF_INT16,    H5T_NATIVE_INT16},
+    {UHDF_UINT32,   H5T_NATIVE_UINT32},
+    {UHDF_INT32,    H5T_NATIVE_INT32},
+    {UHDF_UINT64,   H5T_NATIVE_UINT64},
+    {UHDF_INT64,    H5T_NATIVE_INT64},
+    {UHDF_FLOAT32,  H5T_NATIVE_FLOAT},
+    {UHDF_FLOAT64,  H5T_NATIVE_DOUBLE}
 };
 
 static inline int UHDFTypeToH4( const UHDF_DataType &t)
@@ -125,61 +146,61 @@ static inline UHDF_DataType getUHDFType()
 template<>
 inline UHDF_DataType getUHDFType<uint8_t>()
 {
-    return UINT8;
+    return UHDF_UINT8;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<int8_t>()
 {
-    return INT8;
+    return UHDF_INT8;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<uint16_t>()
 {
-    return UINT16;
+    return UHDF_UINT16;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<int16_t>()
 {
-    return INT16;
+    return UHDF_INT16;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<uint32_t>()
 {
-    return UINT32;
+    return UHDF_UINT32;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<int32_t>()
 {
-    return INT32;
+    return UHDF_INT32;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<uint64_t>()
 {
-    return UINT64;
+    return UHDF_UINT64;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<int64_t>()
 {
-    return INT64;
+    return UHDF_INT64;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<float>()
 {
-    return FLOAT32;
+    return UHDF_FLOAT32;
 }
 
 template<>
 inline UHDF_DataType getUHDFType<double>()
 {
-    return FLOAT64;
+    return UHDF_FLOAT64;
 }
 
 //--------------------------------
@@ -267,6 +288,12 @@ inline hid_t getH5Type<uint8_t>()
 }
 
 template<>
+inline hid_t getH5Type<char>()
+{
+    return H5T_NATIVE_INT8;
+}
+
+template<>
 inline hid_t getH5Type<int8_t>()
 {
     return H5T_NATIVE_INT8;
@@ -329,6 +356,8 @@ static inline UHDF_DataType H5TypeToUHDF( const hid_t &t)
 
     switch(H5class)
     {
+    case H5T_STRING:
+        return UHDF_INT8;
     case H5T_INTEGER:
     {
         const H5T_sign_t sign = H5Tget_sign(t);
@@ -337,27 +366,27 @@ static inline UHDF_DataType H5TypeToUHDF( const hid_t &t)
         {
         case 1:
             if (sign == H5T_SGN_NONE)
-                return INT8;
+                return UHDF_INT8;
             else
-                return UINT8;
+                return UHDF_UINT8;
             break;
         case 2:
             if (sign == H5T_SGN_NONE)
-                return INT16;
+                return UHDF_INT16;
             else
-                return UINT16;
+                return UHDF_UINT16;
             break;
         case 4:
             if (sign == H5T_SGN_NONE)
-                return INT32;
+                return UHDF_INT32;
             else
-                return UINT32;
+                return UHDF_UINT32;
             break;
         case 8:
             if (sign == H5T_SGN_NONE)
-                return INT64;
+                return UHDF_INT64;
             else
-                return UINT64;
+                return UHDF_UINT64;
             break;
         default:
             throw UHDF_Exception("Couldn't convert HDF5 type to UHDF");
@@ -370,9 +399,9 @@ static inline UHDF_DataType H5TypeToUHDF( const hid_t &t)
         switch(size)
         {
         case 4:
-            return FLOAT32;
+            return UHDF_FLOAT32;
         case 8:
-            return FLOAT64;
+            return UHDF_FLOAT64;
         default:
             throw UHDF_Exception("Couldn't convert HDF5 type to UHDF");
         }

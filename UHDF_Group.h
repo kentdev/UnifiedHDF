@@ -53,9 +53,9 @@ public:
                 continue;
 
             std::unique_ptr<char[]> name(new char[nameLength + 1]);
-            memset(name.get(), 0, nameLength);
+            memset(name.get(), 0, nameLength + 1);
 
-            if (H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name.get(), nameLength, H5P_DEFAULT) < 0)
+            if (H5Aget_name_by_idx(id.h5id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name.get(), nameLength + 1, H5P_DEFAULT) < 0)
                 throw UHDF_Exception("Error getting name of attribute " + boost::lexical_cast<std::string>(i) + " of group '" + groupname + "'");
 
             names.push_back(std::string(name.get()));
@@ -112,6 +112,18 @@ public:
 
         // shouldn't reach here
         throw UHDF_Exception("Error opening dataset " + datasetName);
+    }
+
+    UHDF_Attribute openAttribute(const std::string &attributeName) const
+    {
+        try
+        {
+            return UHDF_Attribute(UHDF_HDF5, id, attributeName);
+        }
+        catch (const UHDF_Exception &e)
+        {
+            throw UHDF_Exception("Couldn't open attribute " + attributeName + " in group " + groupname + ": " + e.what());
+        }
     }
 
 private:
