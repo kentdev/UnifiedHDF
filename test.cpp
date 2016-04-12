@@ -7,16 +7,26 @@ void listAttributes(const T &attOwner, int depth)
 {
     for (const auto &name : attOwner.getAttributeNames())
     {
+        for (int i = 0; i < depth; i++)
+            cout << "\t";
+
         cout << name << ": ";
 
-        const UHDF_Attribute att = attOwner.openAttribute(name);
-        if (att.isString())
+        try
         {
-            cout << "string, '" << att.readAsString() << "'" << endl;
+            const UHDF_Attribute att = attOwner.openAttribute(name);
+            if (att.isString())
+            {
+                cout << "string, '" << att.readAsString() << "'" << endl;
+            }
+            else
+            {
+                cout << UHDFTypeName(att.getType()) << ", " << att.getNumElements() << " elements" << endl;
+            }
         }
-        else
+        catch (UHDF_Exception &e)
         {
-            cout << UHDFTypeName(att.getType()) << ", " << att.getNumElements() << " elements" << endl;
+            cerr << "ERROR OPENING (" << e.what() << ")" << endl;
         }
     }
 }
@@ -29,17 +39,33 @@ void listGroup(const UHDF_Group &g, int depth)
             cout << "\t";
 
         cout << "\tGROUP '" << name << "'" << endl;
-        const UHDF_Group g = g.openGroup(name);
-        listAttributes(g, depth + 1);
-        listGroup (g, depth + 1);
+
+        try
+        {
+            const UHDF_Group g = g.openGroup(name);
+            listAttributes(g, depth + 1);
+            listGroup (g, depth + 1);
+        }
+        catch (UHDF_Exception &e)
+        {
+            cerr << "ERROR OPENING (" << e.what() << ")";
+        }
     }
     for (const auto &name : g.getDatasetNames())
     {
         for (int i = 0; i < depth; i++)
             cout << "\t";
         cout << "\tFIELD '" << name << "'" << endl;
-        const UHDF_Dataset d = g.openDataset(name);
-        listAttributes(d, depth + 1);
+
+        try
+        {
+            const UHDF_Dataset d = g.openDataset(name);
+            listAttributes(d, depth + 2);
+        }
+        catch (UHDF_Exception &e)
+        {
+            cerr << "ERROR OPENING (" << e.what() << ")";
+        }
     }
 }
 
@@ -49,12 +75,30 @@ void listContents(const UHDF_File &f)
     for (const auto &name : f.getGroupNames())
     {
         cout << "\tGROUP '" << name << "'" << endl;
-        const UHDF_Group g = f.openGroup(name);
-        listGroup (g, 1);
+
+        try
+        {
+            const UHDF_Group g = f.openGroup(name);
+            listGroup (g, 1);
+        }
+        catch (UHDF_Exception &e)
+        {
+            cerr << "ERROR OPENING (" << e.what() << ")";
+        }
     }
     for (const auto &name : f.getDatasetNames())
     {
         cout << "\tFIELD '" << name << "'" << endl;
+
+        try
+        {
+            const UHDF_Dataset d = f.openDataset(name);
+            listAttributes(d, 1);
+        }
+        catch (UHDF_Exception &e)
+        {
+            cerr << "ERROR OPENING (" << e.what() << ")";
+        }
     }
 }
 

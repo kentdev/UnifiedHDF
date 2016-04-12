@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <iostream>
 
 #include "UHDF_Types.h"
 #include "UHDF_H5Holder.h"
@@ -53,21 +54,7 @@ public:
 
     bool isString() const
     {
-        if (datatype != UHDF_INT8)
-            return false;
-
-        switch(fileType)
-        {
-        case UHDF_HDF4:
-            return true;  // assume all 8-bit signed-type attributes are character arrays
-        case UHDF_HDF5:
-        {
-            const UHDF_TypeHolder type(H5Aget_type(id.h5id));
-            return (H5Tget_class(type.get()) == H5T_STRING);
-        }
-        }
-
-        return false;
+        return datatype == UHDF_STRING;
     }
 
     template<typename T>
@@ -125,8 +112,30 @@ public:
 
         case UHDF_HDF5:
         {
-            if (H5Aread(id.h5id, getH5Type<T>(), data.data()) < 0)
-                throw UHDF_Exception("Error reading attribute '" + attributename + "'");
+            if (datatype == UHDF_REFERENCE)
+            {
+                data.clear();
+            }
+            else if (datatype == UHDF_STRING)
+            {
+                UHDF_TypeHolder type(H5Tcopy(H5T_C_S1));
+
+                data.resize(numElements + 1);
+                if (H5Tset_size(type.get(), numElements + 1) < 0)
+                    throw UHDF_Exception("Error setting type size when reading string attribute '" + attributename + "'");
+                if (H5Tset_strpad(type.get(), H5T_STR_NULLTERM) < 0)
+                    throw UHDF_Exception("Error setting padding when reading string attribute '" + attributename + "'");
+                if (H5Tset_cset(type.get(), H5T_CSET_ASCII) < 0)
+                    throw UHDF_Exception("Error setting ASCII encoding when reading string attribute '" + attributename + "'");
+
+                if (H5Aread(id.h5id, type.get(), data.data()) < 0)
+                    throw UHDF_Exception("Error reading string attribute '" + attributename + "'");
+            }
+            else
+            {
+                if (H5Aread(id.h5id, getH5Type<T>(), data.data()) < 0)
+                    throw UHDF_Exception("Error reading attribute '" + attributename + "'");
+            }
             break;
         }
         }
@@ -178,7 +187,13 @@ private:
             const UHDF_TypeHolder type(H5Aget_type(id.h5id));
 
             datatype = H5TypeToUHDF(type.get());
-            numElements = H5Sget_simple_extent_npoints(space.get());
+
+            if (datatype == UHDF_REFERENCE)
+                numElements = 1;
+            else if (datatype == UHDF_STRING)
+                numElements = H5Tget_size(type.get());
+            else
+                numElements = H5Sget_simple_extent_npoints(space.get());
 
             if (numElements < 0)
                 throw UHDF_Exception("Error getting number of elements in attribute '" + attributename + "'");
