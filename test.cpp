@@ -38,7 +38,7 @@ void listGroup(const UHDF_Group &g, int depth)
         for (int i = 0; i < depth; i++)
             cout << "\t";
 
-        cout << "\tGROUP '" << name << "'" << endl;
+        cout << "GROUP '" << name << "'" << endl;
 
         try
         {
@@ -55,16 +55,16 @@ void listGroup(const UHDF_Group &g, int depth)
     {
         for (int i = 0; i < depth; i++)
             cout << "\t";
-        cout << "\tFIELD '" << name << "'" << endl;
+        cout << "FIELD '" << name << "'" << endl;
 
         try
         {
             const UHDF_Dataset d = g.openDataset(name);
-            listAttributes(d, depth + 2);
+            listAttributes(d, depth + 1);
         }
         catch (UHDF_Exception &e)
         {
-            cerr << "ERROR OPENING (" << e.what() << ")";
+            cerr << "ERROR OPENING (" << e.what() << ")" << endl;
         }
     }
 }
@@ -79,7 +79,7 @@ void listContents(const UHDF_File &f)
         try
         {
             const UHDF_Group g = f.openGroup(name);
-            listGroup (g, 1);
+            listGroup (g, 2);
         }
         catch (UHDF_Exception &e)
         {
@@ -93,11 +93,11 @@ void listContents(const UHDF_File &f)
         try
         {
             const UHDF_Dataset d = f.openDataset(name);
-            listAttributes(d, 1);
+            listAttributes(d, 2);
         }
         catch (UHDF_Exception &e)
         {
-            cerr << "ERROR OPENING (" << e.what() << ")";
+            cerr << "ERROR OPENING (" << e.what() << ")" << endl;
         }
     }
 }
