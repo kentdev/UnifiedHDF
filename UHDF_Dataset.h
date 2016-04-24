@@ -67,6 +67,11 @@ public:
                   const int32 *const count,
                   void *buffer) const
     {
+        if (dataType == UHDF_UNKNOWN)
+        {
+            throw UHDF_Exception("Can't read: unknown/unsupported datatype");
+        }
+
         switch(fileType)
         {
         case UHDF_HDF4:
@@ -121,6 +126,11 @@ public:
                const int32 *const count,
                T* buffer) const
     {
+        if (dataType == UHDF_UNKNOWN)
+        {
+            throw UHDF_Exception("Can't read: unknown/unsupported datatype");
+        }
+
         switch(fileType)
         {
         case UHDF_HDF4:
@@ -350,7 +360,14 @@ private:
             }
             rank = static_cast<size_t>(sdsRank);
 
-            dataType = H4TypeToUHDF(sdsType);
+            try
+            {
+                dataType = H4TypeToUHDF(sdsType);
+            }
+            catch (UHDF_Exception &)
+            {
+                dataType = UHDF_UNKNOWN;
+            }
 
             break;
         }
@@ -381,7 +398,15 @@ private:
             }
 
             const UHDF_TypeHolder h5Type(H5Dget_type(id.h5id));
-            dataType = H5TypeToUHDF(h5Type.get());
+
+            try
+            {
+                dataType = H5TypeToUHDF(h5Type.get());
+            }
+            catch (UHDF_Exception &)
+            {
+                dataType = UHDF_UNKNOWN;
+            }
 
             break;
         }

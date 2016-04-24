@@ -49,6 +49,7 @@ typedef enum
     UHDF_FLOAT64,
     UHDF_STRING,
     UHDF_REFERENCE,  // object reference, HDF5 only
+    UHDF_UNKNOWN
 } UHDF_DataType;
 
 static const std::map<UHDF_DataType, std::string> UHDFNameMap = {
@@ -63,7 +64,8 @@ static const std::map<UHDF_DataType, std::string> UHDFNameMap = {
     {UHDF_FLOAT32,   "FLOAT32"},
     {UHDF_FLOAT64,   "FLOAT64"},
     {UHDF_STRING,    "STRING"},
-    {UHDF_REFERENCE, "REFERENCE"}
+    {UHDF_REFERENCE, "REFERENCE"},
+    {UHDF_UNKNOWN,   "UNKNOWN"}
 };
 
 static inline const std::string& UHDFTypeName( const UHDF_DataType &t)
