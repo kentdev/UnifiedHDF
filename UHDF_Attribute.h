@@ -151,13 +151,76 @@ private:
     UHDF_DataType datatype;
     int numElements;
 
-    UHDF_Attribute (UHDF_FileType type, UHDF_Identifier ownerId, const std::string &attributeName)
+    template <typename T>
+    UHDF_Attribute (UDHF_FileType format, UHDF_Identifier ownerId, const std::string &attributeName, const size_t numElements, const T *const dataBuffer)
+    {
+        T dummy = 0;
+        T* buffer = dataBuffer;
+
+        // if 0-element attribute, create a fake 1st element to avoid an HDF4 bug
+        size_t numElems = numElements;
+        if (numElems == 0)
+        {
+            numElems = 1;
+            buffer = &dummy;
+        }
+
+        fileType = format;
+        owner = ownerId;
+        attributename = attributeName;
+        datatype = getUHDFType<T>();
+        numElements = numElems;
+
+        switch (fileType)
+        {
+        case UHDF_HDF4:
+            if (SDsetattr(owner.h4id, attributename.c_str(), UHDFTypeToH4(datatype), numElems, buffer) < 0)
+                throw UHDF_Exception("Error creating attribute '" + attributename + "'");
+
+            id.h4id = SDfindattr(owner.h4id, attributename.c_str());
+            if (id.h4id < 0)
+                throw UHDF_Exception("Can't find newly-created attribute '" + attributename + "'");
+
+            break;
+
+        case UHDF_HDF5:
+        {
+            UHDF_TypeHolder type(H5Tcopy(UHDFTypeToH5(datatype)));
+            std::unique_ptr<UHDF_SpaceHolder> space;
+
+            if (isString())
+            {
+                // string attribute: space is 1, type is numElems-length string
+                if (H5Tset_size(type.get(), numElements) < 0)
+                    throw UHDF_Exception("Error setting size of attribute '" + attributename + "'");
+
+                const hsize_t spaceElems = 1;
+                space.reset(new UHDF_SpaceHolder(H5Screate_simple(1, &spaceElems, NULL)));
+            }
+            else
+            {
+                space.reset(new UHDF_SpaceHolder(H5Screate_simple(1, &elems, NULL)));
+            }
+
+            id.h5id = H5Acreate2(ownerId.h5id, attributename.c_str(), type.get(), space.get(), H5P_DEFAULT, H5P_DEFAULT);
+            if (id.h5id < 0)
+                throw UHDF_Exeception("Error creating attribute '" + attributename + "'");
+
+            if (H5Awrite(id.h5id, type.get(), buffer) < 0)
+                throw UHDF_Exception("Error writing data to newly-created attribute '" + attributename + "'");
+
+            break;
+        }
+        }
+    }
+
+    UHDF_Attribute (UHDF_FileType format, UHDF_Identifier ownerId, const std::string &attributeName)
     {
         fileType = type;
         attributename = attributeName;
         owner = ownerId;
 
-        switch(type)
+        switch(format)
         {
         case UHDF_HDF4:
         {
